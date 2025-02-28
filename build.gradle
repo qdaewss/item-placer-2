@@ -1,0 +1,188 @@
+plugins {
+    id 'dev.architectury.loom' version '1.7-SNAPSHOT' apply false
+    id 'architectury-plugin' version '3.4-SNAPSHOT'
+
+    id 'com.github.johnrengelman.shadow' version '8.1.1' apply false
+    id 'systems.manifold.manifold-gradle-plugin' version '0.0.2-alpha'
+
+    id "com.matthewprenger.cursegradle" version "1.4.0" apply false
+    id 'com.modrinth.minotaur' version '2.+' apply false
+}
+
+project.gradle.ext.getProperties().each { prop ->
+    if (prop.key != null && prop.value != null)
+    rootProject.ext.set(prop.key, prop.value)
+}
+
+architectury {
+    minecraft = project.minecraft_version
+}
+
+allprojects {
+    group = project.maven_group
+    version = project.mod_version
+}
+
+subprojects {
+    apply plugin: 'dev.architectury.loom'
+    apply plugin: 'architectury-plugin'
+
+    apply plugin: 'maven-publish'
+    apply plugin: "systems.manifold.manifold-gradle-plugin"
+
+    apply plugin: "com.matthewprenger.cursegradle"
+    apply plugin: "com.modrinth.minotaur"
+
+    base {
+        archivesName = "${rootProject.archives_name}-${project.minecraft_version}-${project.name}"
+    }
+
+    repositories {
+        maven {
+            name = 'ParchmentMC'
+            url = 'https://maven.parchmentmc.org'
+        }
+    }
+
+    configurations {
+        testImplementation.extendsFrom annotationProcessor
+    }
+
+    loom {
+        silentMojangMappingsLicense()
+    }
+
+    java {
+        withSourcesJar()
+
+        toolchain {
+            if (project.java_version == "17") {
+                languageVersion = JavaLanguageVersion.of(17)
+                vendor = JvmVendorSpec.ADOPTIUM
+            } else {
+                languageVersion = JavaLanguageVersion.of(21)
+                vendor = JvmVendorSpec.ADOPTIUM
+            }
+        }
+    }
+
+    processResources {
+        def replaceProperties = [
+                mod_version : project.mod_version,
+                minecraft_version : project.minecraft_version,
+                fabric_loader_version : project.fabric_loader_version,
+                architectury_api_version : project.architectury_api_version,
+                java : project.java_version,
+                name : "Item placer 2",
+                modid : project.archives_name,
+                description : "Mod that lets you place items on any block side",
+                authors : "akicater",
+                license : "MIT",
+                sources : "https://github.com/qdaewss/item-placer-2"
+        ]
+
+        if (rootProject.hasProperty("forge_version")) {
+            replaceProperties.put("forge_loader_version", project.forge_version)
+        }
+        if (rootProject.hasProperty("neoforge_version")) {
+            replaceProperties.put("neoforge_loader_version", project.neoforge_version)
+        }
+        if (rootProject.hasProperty("yacl_version")) {
+            replaceProperties.put("yacl_version", project.yacl_version)
+        }
+        if (rootProject.hasProperty("midnightlib_version")) {
+            replaceProperties.put("midnightlib_version", project.midnightlib_version)
+        }
+
+        def files = ["fabric.mod.json", "META-INF/mods.toml", "META-INF/neoforge.mods.toml", "quilt.mod.json"]
+        inputs.properties replaceProperties
+
+        filesMatching(files) {
+            replaceProperties.eachWithIndex {
+                expand(replaceProperties) {
+                    replaceProperties
+                }
+            }
+        }
+    }
+
+    dependencies {
+        annotationProcessor("systems.manifold:manifold-preprocessor:${manifold_version}")
+        minecraft "net.minecraft:minecraft:$rootProject.minecraft_version"
+
+        mappings loom.layered() {
+            officialMojangMappings()
+            parchment("org.parchmentmc.data:parchment-1.21:2024.07.28@zip")
+        }
+    }
+
+    def loader = project.name
+
+    modrinth {
+        token = ""
+        projectId = "item-placer-2"
+        versionName = archives_name + " " + mod_version
+        versionNumber = mod_version
+        versionType = "release"
+        uploadFile = remapJar
+        gameVersions = [rootProject.minecraft_version]
+        loaders = [loader]
+        dependencies {
+            if (loader.equals("fabric")) {
+                required.project "fabric-api"
+                required.project "modmenu"
+            }
+
+            if (rootProject.hasProperty("yacl_version")) {
+                required.project "yacl"
+            }
+
+            if (rootProject.hasProperty("midnightlib_version")) {
+                required.project "midnightlib"
+            }
+
+            required.project "architectury-api"
+        }
+        failSilently = true
+    }
+
+    curseforge {
+        apiKey = ""
+
+        project {
+            id = "1124962"
+            releaseType = "release"
+            addGameVersion mod_version
+
+            mainArtifact(remapJar.archiveFile.get().asFile) {
+                it.displayName = archives_name + " " + mod_version
+
+                relations {
+                    if (loader.equals("fabric")) {
+                        requiredDependency "fabric-api"
+                        requiredDependency "modmenu"
+                    }
+
+                    if (rootProject.hasProperty("yacl_version")) {
+                        requiredDependency "yacl"
+                    }
+
+                    if (rootProject.hasProperty("midnightlib_version")) {
+                        requiredDependency "midnightlib"
+                    }
+
+                    requiredDependency "architectury-api"
+                }
+            }
+
+            afterEvaluate {
+                uploadTask.dependsOn("build")
+            }
+        }
+
+        options {
+            forgeGradleIntegration = false
+            javaVersionAutoDetect = false
+        }
+    }
+}
