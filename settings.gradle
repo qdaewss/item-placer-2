@@ -33,7 +33,7 @@ if (hasProperty("index")) {
     version = 0
 }
 
-print("version: ${version}\n")
+print("version: ${version}")
 
 def mc_versions = [
         "1.16.5", // 0
@@ -43,7 +43,8 @@ def mc_versions = [
         "1.19.4", // 4
         "1.20.1", // 5
         "1.20.4", // 6
-        "1.21, 1.21.1"   // 7
+        "1.21",    // 7
+        "1.21.4"    // 8
 ]
 
 writeBuildGradlePredefine(mc_versions, version)
