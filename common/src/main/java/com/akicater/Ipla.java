@@ -29,6 +29,7 @@ import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.phys.AABB;
@@ -103,7 +104,11 @@ public final class Ipla {
 
         lItemBlockEntity = blockEntities.register(
                 #if MC_VER >= V1_21 ResourceLocation.fromNamespaceAndPath #else new ResourceLocation #endif(MOD_ID, "l_item_entity"),
-                () -> BlockEntityType.Builder.of(LayingItemEntity::new, lItemBlock.get()).build(null)
+                #if MC_VER > V1_21
+                    () ->
+                #else
+                    () -> BlockEntityType.Builder.of(LayingItemEntity::new, lItemBlock.get()).build(null)
+                #endif
         );
 
 

@@ -119,8 +119,8 @@ subprojects {
     def loader = project.name
 
     modrinth {
-        token = ""
-        projectId = "item-placer-2"
+        token = "mrp_RcyjzwtfHlAXiTSTJZZNYgRTzPzLTXnahq0EuopNJ1dLwFyBKUZUmyyVTKhn"
+        projectId = "item-placer"
         versionName = archives_name + " " + mod_version
         versionNumber = mod_version
         versionType = "release"
